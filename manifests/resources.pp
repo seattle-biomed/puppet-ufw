@@ -21,6 +21,10 @@
 #
 # === Examples
 #
+# class { 'ufw::resources':
+#   allow => { 'dns_tcp' => { 'proto' => 'tcp', 'port' => 53 },
+#              'dns_udp' => { 'proto' => 'udp', 'port' => 53 } },
+# }
 #
 #
 # === Authors
