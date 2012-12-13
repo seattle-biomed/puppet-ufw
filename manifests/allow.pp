@@ -4,6 +4,9 @@
 #
 # === Parameters
 #
+# [*ensure*]
+#   Whether rule is "present" or "absent".
+#
 # [*from*]
 #   Source address for firewall rule, or "Anywhere".
 #
@@ -46,10 +49,11 @@
 # Original module Copyright (C) 2011 by Eivind Uggedal <eivind@uggedal.com>
 #
 define ufw::allow(
-  $from='any',
-  $ip='',
-  $proto='tcp',
-  $port='all'
+  $ensure = 'present',
+  $from = 'any',
+  $ip = '',
+  $proto = 'tcp',
+  $port = 'all'
   ) {
 
   # Path to binaries, to shorten commands below and avoid global search path:
@@ -71,21 +75,36 @@ define ufw::allow(
   }
 
   $cmd = $port ? {
-    'all'   => "${ufw} allow proto ${proto} from ${from} to ${ipadr}",
-    default => "${ufw} allow proto ${proto} from ${from} to ${ipadr} port ${port}",
+    'all'   => "allow proto ${proto} from ${from} to ${ipadr}",
+    default => "allow proto ${proto} from ${from} to ${ipadr} port ${port}",
   }
 
-  $unless = "${ipadr}:${port}" ? {
+  $match = "${ipadr}:${port}" ? {
     'any:all'    => "${ufw} status | ${grep} -E \" +ALLOW +${from_match}\"",
     /[0-9]:all$/ => "${ufw} status | ${grep} -E \"${ipadr}/${proto} +ALLOW +${from_match}\"",
     /^any:[0-9]/ => "${ufw} status | ${grep} -E \"${port}/${proto} +ALLOW +${from_match}\"",
     default      => "${ufw} status | ${grep} -E \"${ipadr} ${port}/${proto} +ALLOW +${from_match}\"",
   }
 
-  exec { "ufw-allow-${proto}-from-${from}-to-${ipadr}-port-${port}":
-    command => $cmd,
-    unless  => $unless,
-    require => Exec['ufw-default-deny'],
-    before  => Exec['ufw-enable'],
+  case $ensure {
+    'present': {
+      exec { "ufw-allow-${proto}-from-${from}-to-${ipadr}-port-${port}":
+        command => "${ufw} ${cmd}",
+        unless  => $match,
+        require => Exec['ufw-default-deny'],
+        before  => Exec['ufw-enable'],
+      }
+    }
+    'absent': {
+      exec { "ufw-delete-allow-${proto}-from-${from}-to-${ipadr}-port-${port}":
+        command => "${ufw} delete ${cmd}",
+        onlyif  => $match,
+        require => Exec['ufw-default-deny'],
+        before  => Exec['ufw-enable'],
+      }
+    }
+    default: {
+      fail('Invalid value for ensure - must be absent or present.')
+    }
   }
 }
