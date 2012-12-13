@@ -4,6 +4,9 @@
 #
 # === Parameters
 #
+# [*ensure*]
+#   Whether rule is "present" or "absent".
+#
 # [*from*]
 #   Source address for firewall rule, or "Anywhere".
 #
@@ -35,10 +38,11 @@
 # Original module Copyright (C) 2011 by Eivind Uggedal <eivind@uggedal.com>
 #
 define ufw::deny(
-  $from='any',
-  $ip='',
-  $port='all',
-  $proto='tcp'
+  $ensure = 'present',
+  $from = 'any',
+  $ip = '',
+  $port = 'all',
+  $proto = 'tcp'
   ) {
 
   # Path to binaries, to shorten commands below and avoid global search path:
@@ -60,19 +64,34 @@ define ufw::deny(
   }
 
   $cmd = $port ? {
-    'all'   => "${ufw} deny proto ${proto} from ${from} to ${ipadr}",
-    default => "${ufw} deny proto ${proto} from ${from} to ${ipadr} port ${port}",
+    'all'   => "deny proto ${proto} from ${from} to ${ipadr}",
+    default => "deny proto ${proto} from ${from} to ${ipadr} port ${port}",
   }
 
-  $unless = $port ? {
+  $match = $port ? {
     'all'   => "${ufw} status | ${grep} -E \"${ipadr}/${proto} +DENY +${from_match}\"",
     default => "${ufw} status | ${grep} -E \"${ipadr} ${port}/${proto} +DENY +${from_match}\"",
   }
 
-  exec { "ufw-deny-${proto}-from-${from}-to-${ipadr}-port-${port}":
-    command => $cmd,
-    unless  => $unless,
-    require => Exec['ufw-default-deny'],
-    before  => Exec['ufw-enable'],
+  case $ensure {
+    'present': {
+      exec { "ufw-deny-${proto}-from-${from}-to-${ipadr}-port-${port}":
+        command => "${ufw} ${cmd}",
+        unless  => $match,
+        require => Exec['ufw-default-deny'],
+        before  => Exec['ufw-enable'],
+      }
+    }
+    'absent': {
+      exec { "ufw-delete-deny-${proto}-from-${from}-to-${ipadr}-port-${port}":
+        command => "${ufw} delete ${cmd}",
+        onlyif  => $match,
+        require => Exec['ufw-default-deny'],
+        before  => Exec['ufw-enable'],
+      }
+    }
+    default: {
+      fail('Invalid value for ensure - must be absent or present.')
+    }
   }
 }
