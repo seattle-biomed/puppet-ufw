@@ -1,6 +1,6 @@
-# == Class:
+# == Define: ufw::limit
 #
-# Full description here.
+# Add or remove a UFW rate limiting rule.
 #
 # === Parameters
 #
@@ -13,11 +13,12 @@
 #
 # === Authors
 #
+# Original module by Eivind Uggedal <eivind@uggedal.com>
 # Andrew Leonard
 #
 # === Copyright
 #
-# Copyright 2012 Andrew Leonard
+# Original module Copyright (C) 2011 by Eivind Uggedal <eivind@uggedal.com>
 #
 define ufw::limit($proto='tcp') {
 
