@@ -36,14 +36,11 @@
 # Copyright 2012 Andrew Leonard
 #
 class ufw::resources(
-  $allow = hiera_hash('ufw_allow'),
-  $deny = hiera_hash('ufw_deny'),
-  $limit = hiera_hash('ufw_limit')
-  ){
-
+  $allow  = [],
+  $deny   = [],
+  $limit  = []
+) {
   create_resources(ufw::allow, $allow)
-
   create_resources(ufw::deny, $deny)
-
   create_resources(ufw::limit, $limit)
 }
